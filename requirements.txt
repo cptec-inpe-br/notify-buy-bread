@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+python-dotenv
+mysql-connector-python
+apscheduler
+email-validator
+aiosmtplib
+fastapi-utils
+typing-inspect

@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cadastro de Pão</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-3xl mx-auto space-y-8 d-flex">
+    <h1 class="text-3xl font-bold text-center">Cadastro de Pão</h1>
+    <button
+      id="btn-send-emails"
+      class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mt-4"
+    >
+      Avisar quem traz o pão
+    </button>
+    
+    <button
+      id="btn-create-balanced-dates"
+      class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mt-4"
+    >
+      Criar datas balanceadas
+    </button>
+    
+    <button
+      id="btn-delete-all-dates"
+      class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded mb-4"
+    >
+      Deletar todas as datas
+    </button>
+
+
+    <!-- Formulário de Usuário -->
+    <div class="bg-white p-6 rounded shadow">
+      <h2 class="text-xl font-semibold mb-4">Cadastrar Usuário</h2>
+      <form id="user-form" class="space-y-4">
+        <input type="text" id="user-name" placeholder="Nome" required class="w-full p-2 border rounded" />
+        <input type="email" id="user-email" placeholder="Email" required class="w-full p-2 border rounded" />
+        <select id="user-dias-responsavel" required class="w-full p-2 border rounded">
+          <option value="">Selecione os dias que o usuário pode levar</option>
+        </select>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Cadastrar</button>
+      </form>
+    </div>
+
+    <!-- Formulário de Datas -->
+    <div class="bg-white p-6 rounded shadow">
+      <h2 class="text-xl font-semibold mb-4">Cadastrar Data</h2>
+      <form id="date-form" class="space-y-4">
+        <input type="date" id="date-input" required class="w-full p-2 border rounded" />
+        <select id="user-select" required class="w-full p-2 border rounded">
+          <option value="">Selecione um usuário</option>
+        </select>
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded">Cadastrar</button>
+      </form>
+    </div>
+
+    <!-- Lista de Datas -->
+    <table class="w-full mt-6 table-auto border text-sm">
+      <thead>
+      <button id="btnAtualizarDatas" title="Recarregar" class="p-2 rounded hover:bg-gray-200">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6" viewBox="0 0 24 24">
+          <path d="M1 4v6h6"/>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+      </button>
+        <tr class="bg-gray-100">
+          <th class="px-4 py-2 text-left">Data</th>
+          <th class="px-4 py-2 text-left">Responsável</th>
+          <th class="px-4 py-2 text-left">Ações</th>
+        </tr>
+      </thead>
+      <tbody id="dates-list"></tbody>
+    </table>
+<!-- Adicione essa seção onde quiser no HTML -->
+<div class="bg-white p-6 rounded shadow mt-8">
+  <h2 class="text-xl font-semibold mb-4">Usuários Cadastrados</h2>
+  <table class="w-full table-auto border text-sm">
+    <thead>
+      <tr class="bg-gray-100">
+        <th class="px-4 py-2 text-left">Nome</th>
+        <th class="px-4 py-2 text-left">Email</th>
+        <th class="px-4 py-2 text-left">Dias Responsável</th>
+        <th class="px-4 py-2 text-center">Ações</th>
+      </tr>
+    </thead>
+    <tbody id="users-list"></tbody>
+  </table>
+</div>
+
+<!-- Modal simples para edição -->
+<div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white p-6 rounded shadow max-w-md w-full">
+    <h3 class="text-lg font-bold mb-4">Editar Usuário</h3>
+    <form id="edit-user-form" class="space-y-4">
+      <input type="text" id="edit-user-name" placeholder="Nome" required class="w-full p-2 border rounded" />
+      <input type="email" id="edit-user-email" placeholder="Email" required class="w-full p-2 border rounded" />
+      <select id="edit-user-dias" class="w-full p-2 border rounded" required></select>
+      <div class="flex justify-end space-x-4">
+        <button type="button" id="cancel-edit-btn" class="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+  </div>
+
+  <script>
+    const API = "http://localhost:8000"; // ajuste conforme necessário
+
+    async function loadUsers() {
+      const res = await fetch(`${API}/users/`);
+      const users = await res.json();
+      const select = document.getElementById("user-select");
+      select.innerHTML = `<option value="">Selecione um usuário</option>`;
+      users.forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        option.textContent = `${user.nome} (${user.email})`;
+        select.appendChild(option);
+      });
+    }
+
+    async function loadDates() {
+      const res = await fetch(`${API}/dates/`);
+      const dates = await res.json();
+      const list = document.getElementById("dates-list");
+      list.innerHTML = "";
+
+      dates.forEach((item) => {
+        const tr = document.createElement("tr");
+
+        const [year, month, day] = item.data.split("-");
+        const dataFormatada = `${day}/${month}/${year}`;
+
+        tr.innerHTML = `
+          <td class="px-4 py-2 border">${dataFormatada}</td>
+          <td class="px-4 py-2 border">
+            ${item.user.nome} 
+            ${item.foi_avisado ? `<span class="text-green-600 font-semibold ml-2">(Avisado)</span>` : ""}
+          </td>
+          <td class="px-4 py-2 border text-center">
+            <button onclick="deleteDate(${item.id})"
+                    class="text-red-600 hover:text-red-800 font-bold">❌</button>
+          </td>
+        `;
+        list.appendChild(tr);
+      });
+    }
+    
+    async function loadDiasResponsavel() {
+      try {
+        const res = await fetch(`${API}/dias/`);
+        if (!res.ok) throw new Error('Falha ao buscar dias responsavel');
+        const options = await res.json();
+
+        const select = document.getElementById("user-dias-responsavel");
+        select.innerHTML = `<option value="">Selecione os dias que o usuário pode levar</option>`;
+
+        options.forEach(opt => {
+          const label = opt.replace('_', ' & ').replace(/\b\w/g, c => c.toUpperCase()); // "terca_quinta" => "Terca & Quinta"
+          const option = document.createElement("option");
+          option.value = opt;
+          option.textContent = label;
+          select.appendChild(option);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar dias responsavel:", err);
+      }
+    }
+    
+    async function deleteDate(id) {
+      if (!confirm("Tem certeza que deseja deletar essa data?")) return;
+      const res = await fetch(`${API}/dates/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        loadDates();
+      } else {
+        alert("Erro ao deletar.");
+      }
+    }
+
+    document.getElementById("user-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const name = document.getElementById("user-name").value;
+      const email = document.getElementById("user-email").value;
+      await fetch(`${API}/users/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nome: name, email: email })
+      });
+      await loadUsers();
+      e.target.reset();
+    });
+    
+    document.getElementById("btn-send-emails").addEventListener("click", async () => {
+      try {
+        console.log('chamando');
+        const response = await fetch(`${API}/send-emails-alert/`, {
+          method: "POST",
+        });
+
+        if (!response.ok) {
+          throw new Error("Falha ao enviar e-mails.");
+        }
+
+        const data = await response.json();
+        alert(data.message || "E-mails enviados com sucesso!");
+      } catch (err) {
+        console.error("Erro ao enviar e-mails:", err);
+        alert("Erro ao enviar os e-mails.");
+      }
+    });
+
+    document.getElementById("date-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      const data = document.getElementById("date-input").value;
+      console.log(data)
+      const user_id = parseInt(document.getElementById("user-select").value);
+      if (!user_id) return alert("Selecione um usuário!");
+      await fetch(`${API}/dates/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: data, user_id: user_id })
+      });
+      await loadDates();
+      e.target.reset();
+    });
+    
+     document.getElementById("btn-create-balanced-dates").addEventListener("click", async () => {
+        try {
+          const response = await fetch(`${API}/create-balanced-dates/`, {
+            method: "POST",
+          });
+
+          if (!response.ok) {
+            throw new Error("Falha ao criar datas balanceadas.");
+          }
+
+          const data = await response.json();
+          alert(data.message || "Datas criadas com sucesso!");
+          loadDates(); // Atualiza a lista de datas
+        } catch (err) {
+          console.error("Erro ao criar datas balanceadas:", err);
+          alert("Erro ao criar datas balanceadas.");
+        }
+      });
+      
+      document.getElementById("btn-delete-all-dates").addEventListener("click", async () => {
+      if (!confirm("Tem certeza que deseja deletar todas as datas?")) return;
+      try {
+        const res = await fetch(`${API}/dates/`, { method: "DELETE" });
+        if (res.ok) {
+          alert("Todas as datas foram deletadas.");
+          loadDates();
+        } else {
+          alert("Erro ao deletar as datas.");
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao deletar as datas.");
+      }
+    });
+    
+    const usersListEl = document.getElementById("users-list");
+  const editModal = document.getElementById("edit-user-modal");
+  const editForm = document.getElementById("edit-user-form");
+  const editNameInput = document.getElementById("edit-user-name");
+  const editEmailInput = document.getElementById("edit-user-email");
+  const editDiasSelect = document.getElementById("edit-user-dias");
+  const cancelEditBtn = document.getElementById("cancel-edit-btn");
+
+  let currentEditUserId = null;
+  let diasEnumOptions = [];
+
+  async function loadDiasEnum() {
+    const res = await fetch(`${API}/dias/`);
+    diasEnumOptions = await res.json();
+
+    editDiasSelect.innerHTML = diasEnumOptions
+      .map(opt => `<option value="${opt}">${opt.replace('_', ' ').toUpperCase()}</option>`)
+      .join("");
+  }
+
+  async function loadUsersList() {
+    const res = await fetch(`${API}/users/`);
+    const users = await res.json();
+    usersListEl.innerHTML = "";
+    users.forEach(user => {
+      usersListEl.innerHTML += `
+        <tr>
+          <td class="px-4 py-2 border">${user.nome}</td>
+          <td class="px-4 py-2 border">${user.email}</td>
+          <td class="px-4 py-2 border">${user.dias_responsavel || ''}</td>
+          <td class="px-4 py-2 border text-center space-x-2">
+            <button onclick="openEditModal(${user.id})" class="text-blue-600 hover:text-blue-800 font-bold">✏️</button>
+            <button onclick="deleteUser(${user.id})" class="text-red-600 hover:text-red-800 font-bold">❌</button>
+          </td>
+        </tr>`;
+    });
+  }
+
+  function openEditModal(userId) {
+    currentEditUserId = userId;
+    fetch(`${API}/users/${userId}`)
+      .then(res => res.json())
+      .then(user => {
+        editNameInput.value = user.nome;
+        editEmailInput.value = user.email;
+        editDiasSelect.value = user.dias_responsavel || diasEnumOptions[0];
+        editModal.classList.remove("hidden");
+      });
+  }
+
+  cancelEditBtn.onclick = () => {
+    editModal.classList.add("hidden");
+    currentEditUserId = null;
+  };
+
+  editForm.onsubmit = async e => {
+    e.preventDefault();
+    if (!currentEditUserId) return;
+
+    const updatedUser = {
+      nome: editNameInput.value.trim(),
+      email: editEmailInput.value.trim(),
+      dias_responsavel: editDiasSelect.value,
+    };
+
+    const res = await fetch(`${API}/users/${currentEditUserId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedUser),
+    });
+
+    if (res.ok) {
+      alert("Usuário atualizado!");
+      editModal.classList.add("hidden");
+      currentEditUserId = null;
+      loadUsersList();
+      loadUsers(); // para atualizar o select também
+    } else {
+      const errorData = await res.json();
+      alert(`Erro: ${errorData.detail || "Não foi possível atualizar."}`);
+    }
+  };
+
+  async function deleteUser(userId) {
+    if (!confirm("Tem certeza que deseja deletar este usuário?")) return;
+    const res = await fetch(`${API}/users/${userId}`, { method: "DELETE" });
+    if (res.ok) {
+      alert("Usuário deletado!");
+      loadUsersList();
+      loadUsers();
+    } else {
+      alert("Erro ao deletar usuário.");
+    }
+  }
+  document.getElementById("btnAtualizarDatas").addEventListener("click", () => {
+    loadDates();
+  });
+  // Inicializa enum + lista
+    loadDiasEnum().then(loadUsersList);
+
+    // Inicialização
+    loadUsers();
+    loadDates();
+    loadDiasResponsavel();
+  </script>
+</body>
+</html>
+
