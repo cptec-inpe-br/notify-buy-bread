@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: fastapi_app
+    ports:
+      - "8000:8000"
+    networks:
+      - buy-bread
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+    env_file:
+      - .env
+
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    ports:
+      - "3306:3306"
+    networks:
+      - buy-bread
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
+
+networks:
+  buy-bread:
+    driver: bridge
