@@ -1,6 +1,7 @@
 # Imagem base oficial do Python
 FROM python:3.12-slim
 
+ENV PYTHONPATH=/app
 # Define diretório de trabalho
 WORKDIR /app
 
@@ -17,4 +18,4 @@ COPY . .
 EXPOSE 8000
 
 # Comando para rodar a aplicação
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["python", "src/main.py"]
