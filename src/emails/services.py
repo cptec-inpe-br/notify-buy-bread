@@ -70,8 +70,8 @@ async def send_email_async(to_email: str, to_name: str, body: str):
         port=settings.SMTP_PORT,
         username=settings.SMTP_USER,
         password=settings.SMTP_PASS,
-        start_tls=False,
-        use_tls=True,
+        start_tls=True,
+        use_tls=False,
         timeout=30,
         recipients=[to_email],  # <-- ESSA LINHA É IMPORTANTE
     )

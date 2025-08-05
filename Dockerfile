@@ -1,7 +1,7 @@
 # Imagem base oficial do Python
 FROM python:3.12-slim
 
-ENV PYTHONPATH=/app/src
+ENV PYTHONPATH=/app
 # Define diretório de trabalho
 WORKDIR /app
 

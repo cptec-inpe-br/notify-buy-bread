@@ -8,7 +8,7 @@ from src.users.routes import router as users_router
 from src.dates.routes import router as dates_router
 from src.emails.routes import router as emails_router
 
-app = FastAPI()
+app = FastAPI(root_path='/paododia/api')
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Pode restringir isso se quiser
