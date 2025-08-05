@@ -6,6 +6,7 @@ services:
     container_name: fastapi_app
     ports:
       - "8000:8000"
+      - "8080:8080"
     networks:
       - buy-bread
     volumes:
