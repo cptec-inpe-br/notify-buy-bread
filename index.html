@@ -5,27 +5,27 @@
   <title>Cadastro de Pão</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
- <div class="flex flex-col gap-8 p-4">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center gap-4 m-4">
+ <div class="flex flex-col gap-8">
      <div class="flex flex-col gap-4">
        <div class="flex gap-4">
        <button
       id="btn-send-emails"
-      class="bg-green-600 hover:bg-green-700 text-white font-bold items-center h-20 rounded w-full"
+      class="bg-green-600 hover:bg-green-700 text-white font-bold items-center h-14 mt-6 rounded w-full"
     >
       Avisar quem traz o pão
     </button>
 
     <button
       id="btn-create-balanced-dates"
-      class="bg-purple-600 hover:bg-purple-700 text-white font-bold items-center rounded w-full h-20"
+      class="bg-purple-600 hover:bg-purple-700 text-white font-bold items-center rounded w-full h-14 mt-6"
     >
       Criar datas balanceadas
     </button>
 
     <button
       id="btn-delete-all-dates"
-      class="bg-red-600 hover:bg-red-700 text-white font-bold items-center rounded w-full h-20"
+      class="bg-red-600 hover:bg-red-700 text-white font-bold items-center rounded w-full h-14 mt-6"
     >
       Deletar todas as datas
     </button>
@@ -33,8 +33,8 @@
 
 
     <!-- Formulário de Usuário -->
-    <div>
-      <div class="bg-white p-6 rounded shadow">
+    <div class="bg-white py-6 rounded shadow">
+      <div class="p-6">
       <h2 class="text-xl font-semibold mb-4">Cadastrar Usuário</h2>
       <form id="user-form" class="space-y-4">
         <input type="text" id="user-name" placeholder="Nome" required class="w-full p-2 border rounded" />
@@ -47,7 +47,7 @@
       </div>
 
         <!-- Formulário de Datas -->
-        <div class="bg-white p-6 rounded shadow">
+        <div class="p-6">
           <h2 class="text-xl font-semibold mb-4">Cadastrar Data</h2>
           <form id="date-form" class="space-y-4">
             <input type="date" id="date-input" required class="w-full p-2 border rounded" />
@@ -62,7 +62,7 @@
      </div>
 
     <!-- Lista de Datas -->
- <div class="flex-1 space-y-8">
+ <div class="flex-1 space-y-4">
       <div class="max-h-[20.5rem] overflow-auto mt-6 rounded border">
 <div class="bg-white p-6 rounded shadow">
   <div class="flex justify-between items-center">
@@ -162,7 +162,7 @@
         tr.innerHTML = `
           <td class="px-4 py-2 border">${dataFormatada}</td>
           <td class="px-4 py-2 border">
-            ${item.user.nome} 
+            ${item.user.nome}
             ${item.foi_avisado ? `<span class="text-green-600 font-semibold ml-2">(Avisado)</span>` : ""}
           </td>
           <td class="px-4 py-2 border text-center">
@@ -173,7 +173,7 @@
         list.appendChild(tr);
       });
     }
-    
+
     async function loadDiasResponsavel() {
       try {
         const res = await fetch(`${API}/users/dias/`);
@@ -194,7 +194,7 @@
         console.error("Erro ao carregar dias responsavel:", err);
       }
     }
-    
+
     async function deleteDate(id) {
       if (!confirm("Tem certeza que deseja deletar essa data?")) return;
       const res = await fetch(`${API}/dates/${id}`, { method: "DELETE" });
@@ -218,7 +218,7 @@
       loadUsersList();
       e.target.reset();
     });
-    
+
     document.getElementById("btn-send-emails").addEventListener("click", async () => {
       try {
         const response = await fetch(`${API}/mails/send-emails-alert/`, {
@@ -252,7 +252,7 @@
       await loadDates();
       e.target.reset();
     });
-    
+
      document.getElementById("btn-create-balanced-dates").addEventListener("click", async () => {
         try {
           const response = await fetch(`${API}/dates/create-balanced-dates/`, {
@@ -271,7 +271,7 @@
           alert("Erro ao criar datas balanceadas.");
         }
       });
-      
+
       document.getElementById("btn-delete-all-dates").addEventListener("click", async () => {
       if (!confirm("Tem certeza que deseja deletar todas as datas?")) return;
       try {
@@ -287,7 +287,7 @@
         alert("Erro ao deletar as datas.");
       }
     });
-    
+
     const usersListEl = document.getElementById("users-list");
   const editModal = document.getElementById("edit-user-modal");
   const editForm = document.getElementById("edit-user-form");
