@@ -10,6 +10,68 @@ from src.dates.entity import Dates
 from src.dates.services import get_dates_to_notify
 from src.users.entity import User
 from src.users.enums import DiasResponsavel
+from src.bootstrap.database import SessionLocal
+
+
+async def time_to_coffee(subject: str = None, message: str = None):
+    """
+    Envia lembretes de café para usuários escalados no dia atual.
+    
+    Args:
+        subject: Assunto do e-mail (opcional, padrão: "Tá na hora do cafezinho")
+        message: Mensagem personalizada (opcional, será adicionada antes da mensagem padrão)
+    """
+    db = SessionLocal()
+    try:
+        from datetime import datetime
+        
+        # Obtém o dia da semana atual (0=segunda, 1=terça, ..., 6=domingo)
+        dia_semana = datetime.now().weekday()
+        
+        # Mapeia o dia da semana para os valores do enum
+        dia_atual = None
+        if dia_semana == 1:  # terça
+            dia_atual = "terca"
+        elif dia_semana == 3:  # quinta
+            dia_atual = "quinta"
+        else:
+            return {"message": "Hoje não é dia de café"}
+        
+        # Busca usuários que estão escalados para o dia atual
+        with db:
+            # Filtra usuários que estão escalados para o dia atual ou para terça e quinta
+            users = db.query(User).filter(
+                (User.dias_responsavel == dia_atual) |
+                (User.dias_responsavel == "terca_quinta")
+            ).all()
+        
+        if not users:
+            return {"message": f"Nenhum usuário cadastrado para {dia_atual}"}
+        
+        # Define o assunto padrão se não for fornecido
+        subject = subject or "Tá na hora do cafezinho"
+        
+        for user in users:
+            # Mensagem personalizada + mensagem padrão
+            body_parts = [
+                f"Olá, tudo bem? {user.nome}\n\n",
+                f"{message}\n\n" if message else "9:30 da manhã nos reuniremos para tomar o cafezinho.\n"
+                "Esperamos você!\n\n",
+
+            ]
+            body = "".join(part for part in body_parts if part)
+            
+            await send_email_async(
+                user.email,
+                user.nome,
+                body,
+                subject
+            )
+            
+        return {"message": f"Enviando e-mails para {len(users)} usuários escalados para {dia_atual}"}
+    finally:
+        db.close()
+
 
 
 async def send_emails_for_dates(dates: List[Dates], db: Session):
@@ -35,6 +97,8 @@ async def send_emails_for_dates(dates: List[Dates], db: Session):
         total_pessoas = len(usuarios_do_dia)
         quantidade_para_levar = total_pessoas * 2
 
+        subject = f"Lembrete: Você traz o pão ({date_str})"
+
         corpo_email = (
             f"Olá {usuario.nome},\n\n"
             f"Lembrete rápido: No dia ({date_str}) você é responsável por trazer o pão.\n"
@@ -42,7 +106,7 @@ async def send_emails_for_dates(dates: List[Dates], db: Session):
             f"leve {quantidade_para_levar} pães.\n\n"
             "Valeu!"
         )
-        asyncio.create_task(send_email_async(usuario.email, usuario.nome, corpo_email))
+        asyncio.create_task(send_email_async(usuario.email, usuario.nome, corpo_email, subject))
 
         date_obj.foi_avisado = True
         db.add(date_obj)
@@ -57,11 +121,11 @@ async def send_emails_with_date(db: Session, days: int = 1):
         db.close()
 
 
-async def send_email_async(to_email: str, to_name: str, body: str):
+async def send_email_async(to_email: str, to_name: str, body: str, subject: str):
     msg = EmailMessage()
     msg["From"] = settings.FROM_EMAIL
     msg["To"] = to_email
-    msg["Subject"] = "Lembrete: Você traz o pão"
+    msg["Subject"] = subject if 'subject' in locals() else "Lembrete: Você traz o pão"
     msg.set_content(body)
 
     response = await aiosmtplib.send(

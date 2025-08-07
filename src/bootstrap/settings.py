@@ -17,6 +17,8 @@ class Settings:
     SMTP_PASS = os.getenv("SMTP_PASS")
     FROM_EMAIL = os.getenv("FROM_EMAIL")
 
+    ROOT_PATH = os.getenv('ROOT_PATH', '/')
+
     DATABASE_URL = f"mysql+mysqlconnector://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
 
 settings = Settings()

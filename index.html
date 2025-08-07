@@ -29,6 +29,13 @@
     >
       Deletar todas as datas
     </button>
+    
+    <button
+      id="btn-send-coffee-reminder"
+      class="bg-blue-600 hover:bg-blue-700 text-white font-bold items-center rounded w-full h-14 mt-6"
+    >
+      Enviar Lembrete de Café
+    </button>
      </div>
 
 
@@ -75,7 +82,7 @@
       </button>
   </div>
     <table class="w-full table-auto border text-sm">
-      <thead class="sticky top-0 bg-white z-10">
+      <thead class="sticky top-0 bg-white">
 
         <tr class="bg-gray-100">
           <th class="px-4 py-2 text-left">Data</th>
@@ -126,6 +133,29 @@
       <div class="flex justify-end space-x-4">
         <button type="button" id="cancel-edit-btn" class="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Salvar</button>
+      </div>
+    </form>
+  </div>
+</div>
+ <div id="coffee-reminder-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white p-6 rounded shadow max-w-md w-full">
+    <h3 class="text-lg font-bold mb-4">Enviar Lembrete de Café</h3>
+    <form id="coffee-reminder-form" class="space-y-4">
+      <div>
+        <label for="coffee-subject" class="block text-sm font-medium text-gray-700">Assunto</label>
+        <input type="text" id="coffee-subject" value="Tá na hora do cafezinho" class="w-full p-2 border rounded">
+      </div>
+      <div>
+        <label for="coffee-message" class="block text-sm font-medium text-gray-700">Mensagem</label>
+        <textarea id="coffee-message" rows="4" class="w-full p-2 border rounded" placeholder="Digite sua mensagem aqui..."></textarea>
+      </div>
+      <div class="flex justify-end gap-2">
+        <button type="button" id="btn-cancel-coffee-reminder" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">
+          Cancelar
+        </button>
+        <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
+          Enviar
+        </button>
       </div>
     </form>
   </div>
@@ -209,14 +239,43 @@
       e.preventDefault();
       const name = document.getElementById("user-name").value;
       const email = document.getElementById("user-email").value;
-      await fetch(`${API}/users/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ nome: name, email: email })
-      });
-      loadUsers();
-      loadUsersList();
-      e.target.reset();
+      const diasResponsavel = document.getElementById("user-dias-responsavel").value;
+      
+      if (!diasResponsavel) {
+        alert("Por favor, selecione os dias de responsabilidade.");
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API}/users/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            nome: name, 
+            email: email, 
+            dias_responsavel: diasResponsavel // Adicionando o campo dias_responsavel
+          })
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || 'Erro ao cadastrar usuário');
+        }
+        
+        // Atualiza as listas após o cadastro
+        await Promise.all([
+          loadUsers(),
+          loadUsersList()
+        ]);
+        
+        // Mostra mensagem de sucesso
+        alert("Usuário cadastrado com sucesso!");
+        e.target.reset();
+        
+      } catch (error) {
+        console.error("Erro ao cadastrar usuário:", error);
+        alert(`Erro ao cadastrar usuário: ${error.message}`);
+      }
     });
 
     document.getElementById("btn-send-emails").addEventListener("click", async () => {
@@ -389,6 +448,108 @@
   document.getElementById("btnAtualizarUsers").addEventListener("click", () => {
     loadUsersList();
   });
+
+  // Funções para o modal de envio de lembretes de café
+  const coffeeReminderModal = document.getElementById('coffee-reminder-modal');
+  const coffeeReminderForm = document.getElementById('coffee-reminder-form');
+  const btnCancelCoffeeReminder = document.getElementById('btn-cancel-coffee-reminder');
+
+  // Abrir modal de lembrete de café
+  document.getElementById('btn-send-coffee-reminder').addEventListener('click', () => {
+    coffeeReminderModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  });
+
+  // Fechar modal ao clicar no botão cancelar
+  btnCancelCoffeeReminder.addEventListener('click', () => {
+    coffeeReminderModal.classList.add('hidden');
+    document.body.style.overflow = '';
+  });
+
+  // Fechar modal ao clicar fora do conteúdo
+  coffeeReminderModal.addEventListener('click', (e) => {
+    if (e.target === coffeeReminderModal) {
+      coffeeReminderModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  });
+
+  // Enviar lembretes de café
+  coffeeReminderForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const subject = document.getElementById('coffee-subject').value.trim();
+    const message = document.getElementById('coffee-message').value.trim();
+    
+    // Validação básica
+    if (!subject) {
+      alert('Por favor, insira um assunto para o lembrete.');
+      return;
+    }
+    
+    const btnSubmit = coffeeReminderForm.querySelector('button[type="submit"]');
+    const originalBtnText = btnSubmit.textContent;
+    
+    try {
+      // Desabilitar botão e mostrar loading
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Enviando...</span>';
+      
+      const response = await fetch(`${API}/mails/time-to-coffee`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject,
+          message: message || undefined
+        }),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || 'Não foi possível enviar os lembretes. Tente novamente mais tarde.');
+      }
+      
+      const result = await response.json();
+      
+      // Feedback visual de sucesso
+      const successMessage = document.createElement('div');
+      successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg';
+      successMessage.textContent = result.message || 'Lembretes enviados com sucesso!';
+      document.body.appendChild(successMessage);
+      
+      // Fechar o modal e limpar o formulário
+      coffeeReminderModal.classList.add('hidden');
+      document.body.style.overflow = '';
+      coffeeReminderForm.reset();
+      
+      // Remover mensagem após 3 segundos
+      setTimeout(() => {
+        successMessage.remove();
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Erro ao enviar lembretes:', error);
+      
+      // Feedback visual de erro
+      const errorMessage = document.createElement('div');
+      errorMessage.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg';
+      errorMessage.textContent = `Erro: ${error.message}`;
+      document.body.appendChild(errorMessage);
+      
+      // Remover mensagem após 5 segundos
+      setTimeout(() => {
+        errorMessage.remove();
+      }, 5000);
+      
+    } finally {
+      // Reativar o botão
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = originalBtnText;
+    }
+  });
+
   // Inicializa enum + lista
     loadDiasEnum().then(loadUsersList);
 
@@ -399,4 +560,3 @@
   </script>
 </body>
 </html>
-
