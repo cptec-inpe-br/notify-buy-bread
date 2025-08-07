@@ -1,3 +1,6 @@
+import asyncio
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 
@@ -25,10 +28,22 @@ async def trigger_time_to_coffee(request: CoffeeReminderRequest):
     - message: Mensagem personalizada (opcional)
     """
     try:
-        result = await time_to_coffee(
-            subject=request.subject,
-            message=request.message
+        dia_semana = datetime.now().weekday()
+
+        # Mapeia o dia da semana para os valores do enum
+        dia_atual = None
+        if dia_semana == 1:  # terça
+            dia_atual = "terca"
+        elif dia_semana == 3:  # quinta
+            dia_atual = "quinta"
+        else:
+            return {"message": "Hoje não é dia de café"}
+        asyncio.create_task(
+            time_to_coffee(
+                subject=request.subject,
+                message=request.message
+            )
         )
-        return result
+        return {"message": f"Enviando e-mails para usuários escalados para {dia_atual}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

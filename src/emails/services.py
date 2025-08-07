@@ -35,7 +35,7 @@ async def time_to_coffee(subject: str = None, message: str = None):
         elif dia_semana == 3:  # quinta
             dia_atual = "quinta"
         else:
-            return {"message": "Hoje não é dia de café"}
+            return
         
         # Busca usuários que estão escalados para o dia atual
         with db:
@@ -46,7 +46,7 @@ async def time_to_coffee(subject: str = None, message: str = None):
             ).all()
         
         if not users:
-            return {"message": f"Nenhum usuário cadastrado para {dia_atual}"}
+            return
         
         # Define o assunto padrão se não for fornecido
         subject = subject or "Tá na hora do cafezinho"
@@ -68,7 +68,6 @@ async def time_to_coffee(subject: str = None, message: str = None):
                 subject
             )
             
-        return {"message": f"Enviando e-mails para {len(users)} usuários escalados para {dia_atual}"}
     finally:
         db.close()
 
