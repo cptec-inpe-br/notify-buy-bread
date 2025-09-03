@@ -17,9 +17,9 @@ class DateOut(BaseModel):
     user: UserOut
     foi_avisado: bool  # novo campo
 
-    class Config:
-        from_attributes = True  # ATENÇÃO: Pydantic 2.x
-        orm_mode = True
+    model_config = {
+        "from_attributes": True  # substitui 'orm_mode = True'
+    }
 
     @classmethod
     def from_orm_with_timezone(cls, data: Dates):

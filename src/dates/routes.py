@@ -64,7 +64,7 @@ def create_balanced_dates(db: Session = Depends(get_db)):
         return {"error": str(e)}
 
 
-@router.delete("/dates/{date_id}")
+@router.delete("/{date_id}")
 def delete_date(date_id: int):
     db = SessionLocal()
     date = db.query(Dates).filter(Dates.id == date_id).first()
@@ -112,6 +112,24 @@ def create_date(date_in: DateCreate):
         raise HTTPException(status_code=400, detail="Usuário não existe")
     db_date = Dates(data=date_in.data, user_id=date_in.user_id)
     db.add(db_date)
+    db.commit()
+    db_date = db.query(Dates).options(joinedload(Dates.user)).filter(Dates.id == db_date.id).first()
+    db.close()
+    return DateOut.from_orm_with_timezone(db_date)
+
+@router.put("/{date_id}", response_model=DateOut)
+def update_date(date_id: int, date_in: DateCreate):
+    db = SessionLocal()
+    db_date = db.query(Dates).filter(Dates.id == date_id).first()
+    if not db_date:
+        db.close()
+        raise HTTPException(status_code=404, detail="Data não encontrada")
+    user = db.query(User).filter(User.id == date_in.user_id).first()
+    if not user:
+        db.close()
+        raise HTTPException(status_code=400, detail="Usuário não existe")
+    db_date.data = date_in.data
+    db_date.user_id = date_in.user_id
     db.commit()
     db_date = db.query(Dates).options(joinedload(Dates.user)).filter(Dates.id == db_date.id).first()
     db.close()

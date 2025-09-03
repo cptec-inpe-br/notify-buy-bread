@@ -120,7 +120,32 @@
 </div>
     </div>
     </div>
+  
 
+  <!-- Modal de edição de data -->
+<div id="edit-date-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+  <div class="bg-white p-6 rounded shadow max-w-md w-full">
+    <h3 class="text-lg font-bold mb-4">Editar Data</h3>
+    <form id="edit-date-form" class="space-y-4">
+      <div>
+        <label for="edit-date-input" class="block text-sm font-medium text-gray-700">Data</label>
+        <input type="date" id="edit-date-input" class="w-full p-2 border rounded" required />
+      </div>
+      <div>
+        <label for="edit-date-user" class="block text-sm font-medium text-gray-700">Responsável</label>
+        <select id="edit-date-user" class="w-full p-2 border rounded" required></select>
+      </div>
+      <div class="flex justify-between mt-2">
+        <button type="button" id="btn-notify-user" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Notificar Usuário</button>
+        <div class="flex space-x-4">
+          <button type="button" id="cancel-edit-date-btn" class="px-4 py-2 bg-gray-300 rounded">Cancelar</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Salvar</button>
+        </div>
+      </div>
+      <p id="edit-date-warning" class="text-red-600 mt-2 hidden">Esta data já foi avisada e não pode ser alterada.</p>
+    </form>
+  </div>
+</div>
 <!-- Modal simples para edição -->
 
 <div id="edit-user-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
@@ -162,7 +187,7 @@
 </div>
 
   <script>
-    const API = "https://fortuna.cptec.inpe.br/paododia/api"; // ajuste conforme necessário
+    const API = "http://localhost:8000"; // ajuste conforme necessário
 
     async function loadUsers() {
       const res = await fetch(`${API}/users/`);
@@ -196,6 +221,8 @@
             ${item.foi_avisado ? `<span class="text-green-600 font-semibold ml-2">(Avisado)</span>` : ""}
           </td>
           <td class="px-4 py-2 border text-center">
+            <button onclick="openEditDateModal(${item.id}, '${item.data}', ${item.user.id}, ${item.foi_avisado})"
+              class="text-blue-600 hover:text-blue-800 font-bold">✏️</button>
             <button onclick="deleteDate(${item.id})"
                     class="text-red-600 hover:text-red-800 font-bold">❌</button>
           </td>
@@ -314,6 +341,7 @@
 
      document.getElementById("btn-create-balanced-dates").addEventListener("click", async () => {
         try {
+          if (!confirm("Tem certeza que deseja realizar essa operação? Datas podem ser sobrescritas.")) return;          
           const response = await fetch(`${API}/dates/create-balanced-dates/`, {
             method: "POST",
           });
@@ -437,6 +465,7 @@
       alert("Usuário deletado!");
       loadUsersList();
       loadUsers();
+      loadDates(); // para remover datas associadas
     } else {
       alert("Erro ao deletar usuário.");
     }
@@ -558,5 +587,81 @@
     loadDates();
     loadDiasResponsavel();
   </script>
+  <script>
+let currentEditDateId = null;
+const editDateModal = document.getElementById('edit-date-modal');
+const editDateForm = document.getElementById('edit-date-form');
+const editDateInput = document.getElementById('edit-date-input');
+const editDateUser = document.getElementById('edit-date-user');
+const cancelEditDateBtn = document.getElementById('cancel-edit-date-btn');
+const editDateWarning = document.getElementById('edit-date-warning');
+const btnNotifyUser = document.getElementById('btn-notify-user');
+
+function openEditDateModal(id, date, userId, foiAvisado) {
+  currentEditDateId = id;
+  editDateInput.value = date;
+  editDateUser.innerHTML = document.getElementById('user-select').innerHTML; // reutiliza select de usuários
+  editDateUser.value = userId;
+
+  if (foiAvisado) {
+    editDateInput.disabled = true;
+    editDateUser.disabled = true;
+    editDateWarning.classList.remove('hidden');
+  } else {
+    editDateInput.disabled = false;
+    editDateUser.disabled = false;
+    editDateWarning.classList.add('hidden');
+  }
+
+  editDateModal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+cancelEditDateBtn.onclick = () => {
+  editDateModal.classList.add('hidden');
+  document.body.style.overflow = '';
+  currentEditDateId = null;
+};
+
+editDateForm.onsubmit = async e => {
+  e.preventDefault();
+  if (!currentEditDateId) return;
+
+  const updatedDate = {
+    data: editDateInput.value,
+    user_id: parseInt(editDateUser.value)
+  };
+
+  const res = await fetch(`${API}/dates/${currentEditDateId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updatedDate)
+  });
+
+  if (res.ok) {
+    alert("Data atualizada!");
+    editDateModal.classList.add('hidden');
+    document.body.style.overflow = '';
+    currentEditDateId = null;
+    loadDates(); // atualiza lista de datas
+  } else {
+    const errorData = await res.json();
+    alert(`Erro: ${errorData.detail || "Não foi possível atualizar a data."}`);
+  }
+};
+
+// Notificar apenas o usuário da data
+btnNotifyUser.onclick = async () => {
+  if (!currentEditDateId) return;
+
+  const res = await fetch(`${API}/mails/notify-user-by-date/${currentEditDateId}`, { method: 'POST' });
+  if (res.ok) {
+    alert("Usuário notificado!");
+    loadDates();
+  } else {
+    alert("Erro ao notificar usuário.");
+  }
+};
+</script>
 </body>
 </html>

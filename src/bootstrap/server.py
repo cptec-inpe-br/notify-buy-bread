@@ -20,11 +20,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*24)  # a cada 24h
-async def daily_email_job():
-    print("Rodando job diário de envio de emails...")
-    await send_emails_with_date(SessionLocal(), 1)
+def daily_email_job():
+    scheduler = AsyncIOScheduler()
+
+    # crie um lambda para chamar a função send_emails_with_date com os parâmetros corretos
+
+    print("Enviando e-mail de aviso para o próximo dia...")
+
+    scheduler.add_job(
+        send_emails_with_date,
+        args=[SessionLocal(), 1],  # os parâmetros que você quer passar
+        trigger=CronTrigger(
+            day_of_week='mon,wed',  # 1=segunda, 3=quarta
+            hour=8, 
+            minute=0, 
+            timezone='America/Sao_Paulo'
+            ),
+        id='daily_email_job',
+        name='Enviar e-mail diário às 8h',
+        replace_existing=True
+    )
+
 
 @app.on_event("startup")
 @repeat_every(seconds=60*60*24)  # a cada 24h
@@ -59,3 +75,5 @@ def start_scheduler():
 @app.on_event("startup")
 async def startup_event():
     start_scheduler()
+    daily_email_job()
+    

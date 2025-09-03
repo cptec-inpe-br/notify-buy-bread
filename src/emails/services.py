@@ -109,7 +109,7 @@ async def send_emails_for_dates(dates: List[Dates], db: Session):
 
         date_obj.foi_avisado = True
         db.add(date_obj)
-
+        db.commit()
 
 async def send_emails_with_date(db: Session, days: int = 1):
     try:

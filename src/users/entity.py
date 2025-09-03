@@ -12,4 +12,4 @@ class User(Base):
     nome = Column(String(100), nullable=False)
     email = Column(String(100), nullable=False, unique=True)
     dias_responsavel = Column(Enum(DiasResponsavel), nullable=False, default=DiasResponsavel.terca_quinta)
-    dates = relationship("Dates", back_populates="user")
+    dates = relationship("Dates", back_populates="user", cascade="all, delete-orphan")

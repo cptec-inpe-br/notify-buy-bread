@@ -14,8 +14,7 @@ def get_dates_to_notify(db: Session, days: int = 1):
         .options(joinedload(Dates.user))
         .filter(
             Dates.data >= hoje,
-            Dates.data <= fim,
-            Dates.foi_avisado.is_(False),
+            Dates.data <= fim
         )
         .order_by(Dates.data)
         .all()

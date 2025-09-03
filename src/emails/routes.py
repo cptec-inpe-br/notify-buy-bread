@@ -3,9 +3,12 @@ from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
+from src.dates.entity import Dates
+from src.users.entity import User
+
 
 from src.bootstrap.database import SessionLocal
-from src.emails.services import send_emails_with_date, time_to_coffee
+from src.emails.services import send_emails_with_date, time_to_coffee, send_email_async
 from src.emails.models import CoffeeReminderRequest
 
 router = APIRouter(prefix='/mails')
@@ -45,5 +48,39 @@ async def trigger_time_to_coffee(request: CoffeeReminderRequest):
             )
         )
         return {"message": f"Enviando e-mails para usuários escalados para {dia_atual}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/notify-user-by-date/{date_id}")
+async def notify_user(
+    date_id: int
+):
+    """
+    Notifica o usuário associado a uma data específica.
+    
+    Parâmetros:
+    - date_id: ID da data para a qual o usuário deve ser notificado.
+    """
+    db = SessionLocal()
+    db_date = db.query(Dates).filter(Dates.id == date_id).first()
+    # pegar o usuário associado
+    if not db_date:
+        raise HTTPException(status_code=404, detail="Data não encontrada")
+    
+    db_user = db.query(User).filter(User.id == db_date.user_id).first()
+    date_str = db_date.data.strftime("%d-%m-%Y")
+
+    corpo_email = (
+            f"Olá {db_user.nome},\n\n"
+            f"Lembrete rápido: No dia ({date_str}) você é responsável por trazer o pão.\n"
+        )
+    try:
+        asyncio.create_task(
+            send_email_async(to_email=db_user.email, to_name=db_user.nome, subject="Notificação de Data", body=corpo_email)
+        )
+        db_date.foi_avisado = True
+        db.add(db_date)
+        db.commit()
+        return {"message": f"Notificação enviada para o usuário da data ID {date_id}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
